@@ -1,21 +1,9 @@
 #ifndef LordSwerve_h
 #define LordSwerve_h
+
 #include "FTC_PID.c"
 #include "FTC_Gyro.c"
 #include "drivers/HTSPB-driver.h"
-
-float atan2(float x, float y)
-{
-  float a;
-  if (x>0)           a = atan(y/x);
-  if (y>=0 && x<0)   a = atan(y/x) + PI;
-  if (y<0 && x<0)    a = atan(y/x) - PI;
-  if (y>0 && x==0)   a = PI/2.0;
-  if (y<0 && x==0)   a =-PI/2.0;
-  if (x==0 && y==0)  a = 0;
-
-  return a;
-}
 
 
 typedef struct
@@ -26,12 +14,15 @@ typedef struct
   TServoIndex turnMotor;
   tMotor driveMotor;
   bool inverted;
-  bool driveMotorInverted;
 
+  int lastPos;
+  int truePos;
+  int Rollovers;
+  bool driveMotorInverted;
   int number;
 } SwerveModule;
 
-void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted = false, bool driveInverted = false);
+void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted = false);
 void updateSwerveModule(SwerveModule &swerveModule);
 
 SwerveModule modules[4];
@@ -62,7 +53,7 @@ void updateSwerveDrive()
 
 /* Swerve module library */
 
-void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted, bool driveInverted)
+void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted)
 {
   initPID(modules[number].turnPID, 0.3, 0, 0);
   modules[number].turnPID.target = 512;
@@ -70,7 +61,11 @@ void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool
   modules[number].driveMotor = driveMotor;
   modules[number].number = number;
   modules[number].inverted = inverted;
-  modules[number].driveMotorInverted = driveInverted;
+
+  modules[number].lastPos = HTSPBreadADC(proto, number, 10);
+  modules[number].truePos = HTSPBreadADC(proto, number, 10);
+  modules[number].Rollovers = 0;
+
 }
 
 void setModuleTarget(int module, int target)
@@ -97,20 +92,28 @@ bool moduleAtTarget(int module)
 
 void updateSwerveModule(SwerveModule &swerveModule)
 {
-  int turnSpeed = calcPID(swerveModule.turnPID, HTSPBreadADC(proto, swerveModule.number, 10));
-  if ( swerveModule.inverted )
-    turnSpeed = -turnSpeed;
+	int reading = HTSPBreadADC(proto, swerveModule.number, 10);
+	int turnSpeed = calcPID(swerveModule.turnPID, swerveModule.truePos);
+	if ( swerveModule.inverted )
+		turnSpeed = -turnSpeed;
 
-  servo[swerveModule.turnMotor] = turnSpeed+127;
+	if ( swerveModule.lastPos > 600 && reading < 500 )
+		swerveModule.Rollovers++;
+	else if ( swerveModule.lastPos < 500 && reading > 600 )
+		swerveModule.Rollovers--;
 
-  if ( abs(swerveModule.driveSpeed) > 10 )
-    motor[swerveModule.driveMotor] = (swerveModule.driveMotorInverted?-swerveModule.driveSpeed:swerveModule.driveSpeed);
-  else if ( turnSpeed > 10 )
+	servo[swerveModule.turnMotor] = turnSpeed+127;
+	swerveModule.truePos = reading + ( swerveModule.Rollovers*1024 );
+	if ( abs(swerveModule.driveSpeed) > 10 )
+		motor[swerveModule.driveMotor] = (swerveModule.driveMotorInverted?-swerveModule.driveSpeed:swerveModule.driveSpeed);
+	else if ( turnSpeed > 10 )
 	  motor[swerveModule.driveMotor] = -13;
 	else if ( turnSpeed < -10 )
 	  motor[swerveModule.driveMotor] = 13;
-  else
+	else
 	  motor[swerveModule.driveMotor] = 0;
+
+	swerveModule.lastPos = reading;
 
 }
 

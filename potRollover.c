@@ -25,14 +25,18 @@ task main()
   while ( true )
   {
     int reading = HTSPBreadADC(proto, 0, 10);
-    if ( lastPos < 200 && reading > 800 )
+    if ( lastPos > 800 && reading < 300 )
       counts++;
-    else if ( lastPos > 800 && reading < 200 )
+    else if ( lastPos < 300 && reading > 800 )
       counts--;
     currentPos = reading + (counts*1024);
-    lastPos = reading;
+
 
     nxtDisplayString(0, "Rolls: %i", counts);
     nxtDisplayString(1, "Value: %i", currentPos);
+    nxtDisplayString(2, "LastV: %i", lastPos);
+
+
+   lastPos = reading;
   }
 }
