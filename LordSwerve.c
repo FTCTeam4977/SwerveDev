@@ -27,6 +27,44 @@ void updateSwerveModule(SwerveModule &swerveModule);
 
 SwerveModule modules[4];
 
+
+task modulePositionWatcher()
+{
+	while ( true )
+	{
+		for ( int i = 0; i < 4; i++ )
+		{
+			int reading = HTSPBreadADC(proto, modules[i].number, 10);
+
+
+			
+			int dif = reading-modules[i].lastPos;
+		
+			
+			
+			if ( dif < -100 )
+				modules[i].Rollovers++;
+			else if ( dif > 100 )
+				modules[i].Rollovers--;
+				
+			modules[i].truePos = reading + ( modules[i].Rollovers*1024 );
+		/*	
+			if ( abs(modules[i].truePos-1024) > 400 && i == 3 )
+			{
+				eraseDisplay();
+					nxtDisplayString(0, "***DEBUG***");
+					nxtDisplayString(1, "Current: %i", reading); 
+					nxtDisplayString(2, "Last: %i", modules[i].lastPos); 
+					nxtDisplayString(3, "Dif: %i", dif); 
+					nxtDisplayString(4, "Final: %i", modules[i].truePos);
+			}*/
+			
+			modules[i].lastPos = reading;
+		}
+		wait1Msec(5);
+	}
+}
+
 /* Swerve Drive */
 
 void initSwerveDrive()
@@ -40,7 +78,7 @@ void initSwerveDrive()
    initSwerveModule(1, pod1Drive, pod1Steer, false);
    initSwerveModule(2, pod2Drive, pod2Steer, true);
    initSwerveModule(3, pod3Drive, pod3Steer, false);
-
+	StartTask(modulePositionWatcher);
 }
 
 void updateSwerveDrive()
@@ -56,6 +94,7 @@ void updateSwerveDrive()
 void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted)
 {
   initPID(modules[number].turnPID, 0.3, 0, 0);
+ 
   modules[number].turnPID.target = 512;
   modules[number].turnMotor = turnMotor;
   modules[number].driveMotor = driveMotor;
@@ -92,18 +131,13 @@ bool moduleAtTarget(int module)
 
 void updateSwerveModule(SwerveModule &swerveModule)
 {
-	int reading = HTSPBreadADC(proto, swerveModule.number, 10);
 	int turnSpeed = calcPID(swerveModule.turnPID, swerveModule.truePos);
+	
 	if ( swerveModule.inverted )
 		turnSpeed = -turnSpeed;
-
-	if ( swerveModule.lastPos > 600 && reading < 500 )
-		swerveModule.Rollovers++;
-	else if ( swerveModule.lastPos < 500 && reading > 600 )
-		swerveModule.Rollovers--;
-
+		
 	servo[swerveModule.turnMotor] = turnSpeed+127;
-	swerveModule.truePos = reading + ( swerveModule.Rollovers*1024 );
+
 	if ( abs(swerveModule.driveSpeed) > 10 )
 		motor[swerveModule.driveMotor] = (swerveModule.driveMotorInverted?-swerveModule.driveSpeed:swerveModule.driveSpeed);
 	else if ( turnSpeed > 10 )
@@ -112,8 +146,6 @@ void updateSwerveModule(SwerveModule &swerveModule)
 	  motor[swerveModule.driveMotor] = 13;
 	else
 	  motor[swerveModule.driveMotor] = 0;
-
-	swerveModule.lastPos = reading;
 
 }
 
@@ -139,9 +171,9 @@ void fieldCentricCrab()
     nxtDisplayString(0, "%i", angle);
     for ( int i = 0; i < 4; i++ )
     {
-      if ( angle < 170 && angle > 10 )
-        setModuleTarget(i, 5.8888888888888*angle);
-      setModuleSpeed(i, magnitude);
+      
+      setModuleTarget(i, 5.8888888888888*angle);
+      //setModuleSpeed(i, magnitude);
       //nxtDisplayString(i, "%i - %i", i, HTSPBreadADC(proto, i, 10));
     }
 }
