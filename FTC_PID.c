@@ -3,28 +3,28 @@
 
 typedef struct
 {
-	long target;
-	long current;
+	int target;
+	int current;
 
 	float Kp;
 	float Ki;
  	float Kd;
 
-	long previousError;
-	long errorSum;
-  long maxIncrement;
+	int previousError;
+	int errorSum;
+  int maxIncrement;
 
   float d;
 
 	bool enabled;
 
-	long acceptedRange;
-	long maxOutput;
-	long output;
+	int acceptedRange;
+	int maxOutput;
+	int output;
 
 	int error;
 
-	long lastDUpdate;
+	int lastDUpdate;
 	bool isFirstCycle;
 	bool rawI;
 } PID;
@@ -58,7 +58,7 @@ int calcPID(PID &pid, int input)
 {
   pid.current = input;
   // P
-  float error = pid.target - pid.current;
+  float error = (float)pid.target - (float)pid.current;
 
   // I
   if ( pid.rawI )

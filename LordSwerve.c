@@ -2,7 +2,7 @@
 #define LordSwerve_h
 
 #include "FTC_PID.c"
-#include "FTC_Gyro.c"
+//#include "FTC_Gyro.c"
 #include "drivers/HTSPB-driver.h"
 
 
@@ -22,55 +22,38 @@ typedef struct
   int number;
 } SwerveModule;
 
+float atan2(float x, float y)
+{
+  float a;
+  if (x>0)           a = atan(y/x);
+  if (y>=0 && x<0)   a = atan(y/x) + PI;
+  if (y<0 && x<0)    a = atan(y/x) - PI;
+  if (y>0 && x==0)   a = PI/2.0;
+  if (y<0 && x==0)   a =-PI/2.0;
+  if (x==0 && y==0)  a = 0;
+
+  return a;
+}
+
 void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted = false);
 void updateSwerveModule(SwerveModule &swerveModule);
 
 SwerveModule modules[4];
 
-
-task modulePositionWatcher()
+int getPotPosition(int pos, int rollovers)
 {
-	while ( true )
-	{
-		for ( int i = 0; i < 4; i++ )
-		{
-			int reading = HTSPBreadADC(proto, modules[i].number, 8);
-
-
-
-			int dif = reading-modules[i].lastPos;
-
-
-
-			if ( dif < -100 )
-				modules[i].Rollovers++;
-			else if ( dif > 100 )
-				modules[i].Rollovers--;
-
-			modules[i].truePos = reading + ( modules[i].Rollovers*1024 );
-		/*
-			if ( abs(modules[i].truePos-1024) > 400 && i == 3 )
-			{
-				eraseDisplay();
-					nxtDisplayString(0, "***DEBUG***");
-					nxtDisplayString(1, "Current: %i", reading);
-					nxtDisplayString(2, "Last: %i", modules[i].lastPos);
-					nxtDisplayString(3, "Dif: %i", dif);
-					nxtDisplayString(4, "Final: %i", modules[i].truePos);
-			}*/
-
-			modules[i].lastPos = reading;
-		}
-		wait1Msec(10);
-	}
+  if ( rollovers == -1 )
+    return (255-pos)*-1;
+  if ( rollovers <= -1 )
+    rollovers +=1;
+  return pos+(rollovers*255);
 }
+
 
 /* Swerve Drive */
 
 void initSwerveDrive()
 {
-
-
    initSwerveModule(0, pod0Drive, pod0Steer, true);
    initSwerveModule(1, pod1Drive, pod1Steer, false);
    initSwerveModule(2, pod2Drive, pod2Steer, true);
@@ -79,12 +62,11 @@ void initSwerveDrive()
    servo[pod1Steer] = 127;
    servo[pod2Steer] = 127;
    servo[pod3Steer] = 127;
-	StartTask(modulePositionWatcher);
 }
 
 void updateSwerveDrive()
 {
-    updateSwerveModule(modules[3]);
+    updateSwerveModule(modules[0]);
 }
 
 
@@ -131,7 +113,25 @@ bool moduleAtTarget(int module)
 
 void updateSwerveModule(SwerveModule &swerveModule)
 {
-	int turnSpeed = calcPID(swerveModule.turnPID, swerveModule.truePos);
+  int reading = HTSPBreadADC(proto, swerveModule.number, 8);
+  int dif = reading-swerveModule.lastPos;
+
+  if ( dif > 100 )
+    swerveModule.Rollovers--;
+  else if ( dif < -100 )
+    swerveModule.Rollovers++;
+
+  swerveModule.truePos = getPotPosition(reading, swerveModule.Rollovers);
+
+  if ( swerveModule.number == 0 )
+  {
+    nxtDisplayString(1, "Rolls: %i", swerveModule.Rollovers);
+    nxtDisplayString(2, "Reading: %i", reading);
+    nxtDisplayString(3, "truepos: %i", swerveModule.truePos);
+  }
+
+
+	int turnSpeed = calcPID(swerveModule.turnPID, getPotPosition(reading, swerveModule.Rollovers));
 
 	if ( swerveModule.inverted )
 		turnSpeed = -turnSpeed;
@@ -146,6 +146,9 @@ void updateSwerveModule(SwerveModule &swerveModule)
 	  motor[swerveModule.driveMotor] = 13;
 	else
 	  motor[swerveModule.driveMotor] = 0;
+
+	swerveModule.lastPos = reading;
+
 
 }
 
@@ -168,11 +171,10 @@ void fieldCentricCrab()
     if ( !(moduleAtTarget(0)&&moduleAtTarget(1)&&moduleAtTarget(2)&&moduleAtTarget(3)) )
       magnitude = 0;
 
-    nxtDisplayString(0, "%i", angle);
     for ( int i = 0; i < 4; i++ )
     {
 
-      setModuleTarget(i, 5.8888888888888*angle);
+      //setModuleTarget(i, 5.8888888888888*angle);
       //setModuleSpeed(i, magnitude);
       //nxtDisplayString(i, "%i - %i", i, HTSPBreadADC(proto, i, 10));
     }

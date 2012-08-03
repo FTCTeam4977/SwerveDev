@@ -30,10 +30,10 @@ int getPotPosition(int pos, int rollovers)
 
 task main()
 {
-  lastPos = currentPos = HTSPBreadADC(proto, 3, 8);
+  lastPos = currentPos = HTSPBreadADC(proto, 0, 8);
   while ( true )
   {
-    int reading = HTSPBreadADC(proto, 3, 8);
+    int reading = HTSPBreadADC(proto, 0, 8);
     int dif = reading-lastPos;
     if ( dif > 100 )
       counts--;

@@ -40,23 +40,14 @@ task changer()
 task main()
 {
   bDisplayDiagnostics = false;
-  initGyro();
+  //initGyro();
   initSwerveDrive();
   //StartTask(changer);
-  for ( int i = 0; i < 4; i++ )
-  {
-    setModuleTarget(i, 1024);
-    setModuleSpeed(i, 0);
-  }
-  waitForStart();
-
+ // waitForStart();
+  modules[0].turnPID.target = 145;
   while ( true )
   {
-    getJoystickSettings(joystick);
-   servo[pod0Steer] = 127;
-   servo[pod1Steer] = 127;
-   servo[pod2Steer] = 127;
-   //servo[pod3Steer] = 127;
+    //getJoystickSettings(joystick);
     //for ( int i = 0; i < 4; i++ )
     //{
     //  nxtDisplayString(i+1, "%i - %i - %i", i, modules[i].truePos, modules[i].Rollovers);
@@ -80,8 +71,9 @@ task main()
    // if ( abs(joystick.joy1_x2) > 10 )
    //   chassisRotation();
    // else
-   fieldCentricCrab();
-   debugPID(modules[3].turnPID);
+   //fieldCentricCrab();
+
+   //debugPID(modules[0].turnPID);
    updateSwerveDrive();
   }
 
