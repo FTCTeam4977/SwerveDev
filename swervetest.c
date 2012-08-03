@@ -39,15 +39,15 @@ task changer()
 */
 task main()
 {
+  waitForStart();
   bDisplayDiagnostics = false;
   //initGyro();
   initSwerveDrive();
   //StartTask(changer);
  // waitForStart();
-  modules[0].turnPID.target = 145;
   while ( true )
   {
-    //getJoystickSettings(joystick);
+    getJoystickSettings(joystick);
     //for ( int i = 0; i < 4; i++ )
     //{
     //  nxtDisplayString(i+1, "%i - %i - %i", i, modules[i].truePos, modules[i].Rollovers);
@@ -71,9 +71,10 @@ task main()
    // if ( abs(joystick.joy1_x2) > 10 )
    //   chassisRotation();
    // else
-   //fieldCentricCrab();
 
-   //debugPID(modules[0].turnPID);
+   fieldCentricCrab();
+
+   debugPID(modules[0].turnPID);
    updateSwerveDrive();
   }
 

@@ -128,9 +128,10 @@ void setPIDTarget(PID &pid, int target)
 void debugPID(PID &pid)
 {
   nxtDisplayString(0, "Cur: %i", pid.current);
-  nxtDisplayString(1, "Err: %i", pid.error);
-  nxtDisplayString(2, "Out: %i", pid.output);
-  nxtDisplayString(3, "Pres: %2.4f", (float)pid.error*pid.Kp);
+  nxtDisplayString(1, "Tar: %i", pid.target);
+  nxtDisplayString(2, "Err: %i", pid.error);
+  nxtDisplayString(3, "Out: %i", pid.output);
+  nxtDisplayString(4, "Pres: %2.4f", (float)pid.error*pid.Kp);
 }
 
 #endif

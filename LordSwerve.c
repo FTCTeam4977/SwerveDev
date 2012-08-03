@@ -16,6 +16,7 @@ typedef struct
   bool inverted;
 
   int lastPos;
+  int rawPos;
   int truePos;
   int Rollovers;
   bool driveMotorInverted;
@@ -83,8 +84,10 @@ void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool
   modules[number].number = number;
   modules[number].inverted = inverted;
 
-  modules[number].lastPos = HTSPBreadADC(proto, number, 8);
-  modules[number].truePos = HTSPBreadADC(proto, number, 8);
+  int reading = HTSPBreadADC(proto, number, 8);
+  modules[number].lastPos = reading;
+  modules[number].truePos = reading;
+  modules[number].rawPos = reading;
   modules[number].Rollovers = 0;
 
 }
@@ -92,8 +95,8 @@ void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool
 void setModuleTarget(int module, int target)
 {
   if ( modules[module].inverted )
-    modules[module].turnPID.target = 1024-target;
-  else modules[module].turnPID.target = target;
+    target = 255-target;
+  modules[module].turnPID.target = target;
 }
 
 void setRawModuleTarget(int module, int target)
@@ -114,6 +117,7 @@ bool moduleAtTarget(int module)
 void updateSwerveModule(SwerveModule &swerveModule)
 {
   int reading = HTSPBreadADC(proto, swerveModule.number, 8);
+  swerveModule.rawPos = reading;
   int dif = reading-swerveModule.lastPos;
 
   if ( dif > 100 )
@@ -122,14 +126,6 @@ void updateSwerveModule(SwerveModule &swerveModule)
     swerveModule.Rollovers++;
 
   swerveModule.truePos = getPotPosition(reading, swerveModule.Rollovers);
-
-  if ( swerveModule.number == 0 )
-  {
-    nxtDisplayString(1, "Rolls: %i", swerveModule.Rollovers);
-    nxtDisplayString(2, "Reading: %i", reading);
-    nxtDisplayString(3, "truepos: %i", swerveModule.truePos);
-  }
-
 
 	int turnSpeed = calcPID(swerveModule.turnPID, getPotPosition(reading, swerveModule.Rollovers));
 
@@ -159,9 +155,7 @@ void fieldCentricCrab()
 {
     int magnitude = sqrt(pow(joystick.joy1_y1, 2)+pow(joystick.joy1_x1, 2));
     int angle = radiansToDegrees(atan2(joystick.joy1_x1,joystick.joy1_y1));
-
-    if ( angle > 180 )
-      angle -= 180;
+    int target = (int)floor(1.41666666*angle);
 
     if (magnitude > 30 )
        magnitude = 30;
@@ -170,14 +164,14 @@ void fieldCentricCrab()
 
     if ( !(moduleAtTarget(0)&&moduleAtTarget(1)&&moduleAtTarget(2)&&moduleAtTarget(3)) )
       magnitude = 0;
-
-    for ( int i = 0; i < 4; i++ )
+    setModuleTarget(0, target);
+  /*  for ( int i = 0; i < 4; i++ )
     {
 
-      //setModuleTarget(i, 5.8888888888888*angle);
+
       //setModuleSpeed(i, magnitude);
       //nxtDisplayString(i, "%i - %i", i, HTSPBreadADC(proto, i, 10));
-    }
+    }*/
 }
 
 void chassisRotation()
@@ -197,6 +191,45 @@ void chassisRotation()
   {
     setModuleSpeed(i, magnitude);
   }
+}
+
+
+void snakeDrive()
+{
+    float insideA = 0;
+    float outsideA = 0;
+
+    static float l = 18;
+    static float w = 18;
+
+    float Acl = 0;
+    Acl = Math.toRadians(10);
+
+		float Rcl = l/(2*Math.sin(Acl));
+		float Rcp = (l/2)/Math.tan(Acl);
+		outsideA = Math.atan((l/2)/(Rcp+(w/2)));
+
+		if ( Rcp == w/2 )
+		{
+			insideA = PI/2;
+		}
+		else if ( Rcp > w/2 )
+		{
+			System.out.println(">");
+			insideA = Math.atan((l/2)/(Rcp-w/2));
+		}
+		else if ( Rcp < w/2 )
+		{
+			System.out.println("<");
+			insideA = Math.PI-Math.atan((l/2)/(Rcp-w/2));
+		}
+
+
+		outsideA = Math.toDegrees(outsideA);
+		insideA = Math.toDegrees(insideA);
+
+		System.out.println("Outside: "+outsideA);
+		System.out.println("Inside: "+insideA);
 }
 
 #endif
