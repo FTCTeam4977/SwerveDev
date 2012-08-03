@@ -53,7 +53,10 @@ task main()
   while ( true )
   {
     getJoystickSettings(joystick);
-
+   servo[pod0Steer] = 127;
+   servo[pod1Steer] = 127;
+   servo[pod2Steer] = 127;
+   //servo[pod3Steer] = 127;
     //for ( int i = 0; i < 4; i++ )
     //{
     //  nxtDisplayString(i+1, "%i - %i - %i", i, modules[i].truePos, modules[i].Rollovers);
@@ -78,7 +81,7 @@ task main()
    //   chassisRotation();
    // else
    fieldCentricCrab();
-
+   debugPID(modules[3].turnPID);
    updateSwerveDrive();
   }
 
