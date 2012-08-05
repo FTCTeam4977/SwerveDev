@@ -203,11 +203,11 @@ void snakeDrive()
     static float w = 18;
 
     float Acl = 0;
-    Acl = Math.toRadians(10);
+    Acl = toRadians(10);
 
-		float Rcl = l/(2*Math.sin(Acl));
-		float Rcp = (l/2)/Math.tan(Acl);
-		outsideA = Math.atan((l/2)/(Rcp+(w/2)));
+		float Rcl = l/(2*sin(Acl));
+		float Rcp = (l/2)/tan(Acl);
+		outsideA = atan((l/2)/(Rcp+(w/2)));
 
 		if ( Rcp == w/2 )
 		{
@@ -215,21 +215,16 @@ void snakeDrive()
 		}
 		else if ( Rcp > w/2 )
 		{
-			System.out.println(">");
-			insideA = Math.atan((l/2)/(Rcp-w/2));
+			insideA = atan((l/2)/(Rcp-w/2));
 		}
 		else if ( Rcp < w/2 )
 		{
-			System.out.println("<");
-			insideA = Math.PI-Math.atan((l/2)/(Rcp-w/2));
+			insideA = PI-atan((l/2)/(Rcp-w/2));
 		}
 
 
-		outsideA = Math.toDegrees(outsideA);
-		insideA = Math.toDegrees(insideA);
-
-		System.out.println("Outside: "+outsideA);
-		System.out.println("Inside: "+insideA);
+		outsideA = radiansToDegrees(outsideA);
+		insideA = radiansToDegrees(insideA);
 }
 
 #endif
