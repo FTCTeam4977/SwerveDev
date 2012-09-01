@@ -46,6 +46,15 @@ int getRolloverTruePos(int number, int pos, int rollovers, bool highres)
   return pos+(rollovers*(highres?1024:255));
 }
 
+int getRolloverPos(int pos, int rollovers, bool highres = true)
+{
+  if ( rollovers == -1 )
+    return ((highres?1024:255)-pos)*-1;
+  if ( rollovers <= -1 )
+    rollovers +=1;
+  return pos+(rollovers*(highres?1024:255));
+}
+
 void moduleRotationWatcher()
 {
   static int checkAt = 0;
@@ -89,8 +98,6 @@ void initModule(int number, TServoIndex turnMotor, int turnOffset, bool invertTu
 
   modules[number].driveMotor = driveMotor;
 
-
-	//initPID(modules[number].turnPID, 1, 0, 0); // 8 bit
   initPID(modules[number].turnPID, 0.3, 0, 0); // 10 bit
 }
 
@@ -121,9 +128,9 @@ void setModuleTarget(int number, int newPos)
 {
   // Add a buffer zone to the js if it is near the turnover point
   if ( newPos > 1000)
-    newPos = 1000;
+    newPos = 990;
   else if ( newPos < 24 )
-    newPos = 24;
+    newPos = 30;
 
   int cur = modules[number].rawPos;
   int p1 = abs(cur-newPos);
@@ -138,15 +145,14 @@ void setModuleTarget(int number, int newPos)
   if ( p1 > p2 ) // Across the 0 is shorter!
   {
     if ( cur > newPos ) // big -> small
-      target = (modules[number].truePos)-p2;
+      target = getRolloverPos(newPos, modules[number].rotations)+1024;
     else if ( cur < newPos ) // small -> big
-      target = p2+(modules[number].truePos);
-    nxtDisplayString(4, "set target to %i", target);
+      target = getRolloverPos(newPos, modules[number].rotations)-1024;
   }
   else // Add current rotations onto the new target
-    target = newPos+(modules[number].rotations*1024);
-
-  nxtDisplayString(number, "%i - %i", number, (p1>p2));
+  {
+    target = getRolloverPos(newPos, modules[number].rotations);
+  }
   modules[number].turnPID.target = target;
 }
 
@@ -166,14 +172,14 @@ void updateModule(int number)
 
   if ( abs(modules[number].driveSpeed) > 10 )
     motor[modules[number].driveMotor] = modules[number].driveSpeed;
-  else if ( output > 10 )
+  else if ( output > 4 )
     motor[modules[number].driveMotor] = -modules[number].idleSpinSpeed;
-  else if ( output < -10 )
+  else if ( output < -4 )
     motor[modules[number].driveMotor] = modules[number].idleSpinSpeed;
   else
    motor[modules[number].driveMotor] = 0;
 
-
+  nxtDisplayString(number, "%i|%i|%i|%i", number, modules[number].truePos, modules[number].turnPID.target, modules[number].turnPID.error);
   servo[modules[number].turnMotor] = output+127;
 }
 

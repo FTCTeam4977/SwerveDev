@@ -68,13 +68,19 @@ task main()
     if ( !joy1Btn(6) )
       magnitude = magnitude/3;
 
-    massSet(theta*2.84444444, magnitude);
-    //massSet(200);
+    if ( joy1Btn(5) )
+    {
+      for ( int i = 0; i < 4; i++ )
+        modules[i].rotations = 0;
+    }
+
+
+    //massSet(theta*2.84444444, magnitude);
+    massSet(512);
     updateModule(0);
     updateModule(1);
     updateModule(2);
     updateModule(3);
-
 
     moduleRotationWatcher();
     //debugPID(modules[2].turnPID);
