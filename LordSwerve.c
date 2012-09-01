@@ -12,17 +12,15 @@ typedef struct
   int driveSpeed;
 
   TServoIndex turnMotor;
+  int turnZeroOffset;
   tMotor driveMotor;
   bool inverted;
 
-  int lastPos;
-  int rawPos;
-  int truePos;
-  int Rollovers;
+  int pos;
   bool driveMotorInverted;
   int number;
 } SwerveModule;
-
+/*
 float atan2(float x, float y)
 {
   float a;
@@ -34,31 +32,23 @@ float atan2(float x, float y)
   if (x==0 && y==0)  a = 0;
 
   return a;
-}
+}*/
 
-void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted = false);
+void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted = false, int turnZeroOffset);
 void updateSwerveModule(SwerveModule &swerveModule);
 
 SwerveModule modules[4];
 
-int getPotPosition(int pos, int rollovers)
-{
-  if ( rollovers == -1 )
-    return (255-pos)*-1;
-  if ( rollovers <= -1 )
-    rollovers +=1;
-  return pos+(rollovers*255);
-}
 
 
 /* Swerve Drive */
 
 void initSwerveDrive()
 {
-   initSwerveModule(0, pod0Drive, pod0Steer, true);
-   initSwerveModule(1, pod1Drive, pod1Steer, false);
-   initSwerveModule(2, pod2Drive, pod2Steer, true);
-   initSwerveModule(3, pod3Drive, pod3Steer, false);
+   initSwerveModule(0, 1, pod0Steer, false, -5);
+   initSwerveModule(1, 2, pod1Steer, false, 0);
+   initSwerveModule(2, 3, pod2Steer, true, 0);
+   initSwerveModule(3, 4, pod3Steer, false, 0);
    servo[pod0Steer] = 127;
    servo[pod1Steer] = 127;
    servo[pod2Steer] = 127;
@@ -74,22 +64,17 @@ void updateSwerveDrive()
 
 /* Swerve module library */
 
-void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted)
+void initSwerveModule(int number, tMotor driveMotor, TServoIndex turnMotor, bool inverted, int turnZeroOffset)
 {
-  initPID(modules[number].turnPID, 0.3, 0, 0);
+  initPID(modules[number].turnPID, 0.01, 0, 0);
 
-  modules[number].turnPID.target = 100;
+  modules[number].turnPID.target = 200;
   modules[number].turnMotor = turnMotor;
   modules[number].driveMotor = driveMotor;
   modules[number].number = number;
   modules[number].inverted = inverted;
-
+  modules[number].turnZeroOffset = turnZeroOffset;
   int reading = HTSPBreadADC(proto, number, 8);
-  modules[number].lastPos = reading;
-  modules[number].truePos = reading;
-  modules[number].rawPos = reading;
-  modules[number].Rollovers = 0;
-
 }
 
 void setModuleTarget(int module, int target)
@@ -117,23 +102,17 @@ bool moduleAtTarget(int module)
 void updateSwerveModule(SwerveModule &swerveModule)
 {
   int reading = HTSPBreadADC(proto, swerveModule.number, 8);
-  swerveModule.rawPos = reading;
-  int dif = reading-swerveModule.lastPos;
 
-  if ( dif > 100 )
-    swerveModule.Rollovers--;
-  else if ( dif < -100 )
-    swerveModule.Rollovers++;
 
-  swerveModule.truePos = getPotPosition(reading, swerveModule.Rollovers);
 
-	int turnSpeed = calcPID(swerveModule.turnPID, getPotPosition(reading, swerveModule.Rollovers));
+	int turnSpeed = calcPID(swerveModule.turnPID, reading);
 
 	if ( swerveModule.inverted )
 		turnSpeed = -turnSpeed;
 
-	servo[swerveModule.turnMotor] = turnSpeed+127;
-
+	servo[swerveModule.turnMotor] = -(turnSpeed+(swerveModule.turnZeroOffset+127));
+	nxtDisplayString(5, "%i", -(turnSpeed+(swerveModule.turnZeroOffset+127)));
+/*
 	if ( abs(swerveModule.driveSpeed) > 10 )
 		motor[swerveModule.driveMotor] = (swerveModule.driveMotorInverted?-swerveModule.driveSpeed:swerveModule.driveSpeed);
 	else if ( turnSpeed > 10 )
@@ -142,15 +121,14 @@ void updateSwerveModule(SwerveModule &swerveModule)
 	  motor[swerveModule.driveMotor] = 13;
 	else
 	  motor[swerveModule.driveMotor] = 0;
-
-	swerveModule.lastPos = reading;
+*/
 
 
 }
 
 
 /* Drive Modes */
-
+/*
 void fieldCentricCrab()
 {
     int magnitude = sqrt(pow(joystick.joy1_y1, 2)+pow(joystick.joy1_x1, 2));
@@ -171,9 +149,8 @@ void fieldCentricCrab()
 
       //setModuleSpeed(i, magnitude);
       //nxtDisplayString(i, "%i - %i", i, HTSPBreadADC(proto, i, 10));
-    }*/
+    }
 }
-
 void chassisRotation()
 {
   int magnitude = joystick.joy1_x2;
@@ -192,8 +169,8 @@ void chassisRotation()
     setModuleSpeed(i, magnitude);
   }
 }
-
-
+*/
+/*
 void snakeDrive()
 {
     float insideA = 0;
@@ -226,5 +203,5 @@ void snakeDrive()
 		outsideA = radiansToDegrees(outsideA);
 		insideA = radiansToDegrees(insideA);
 }
-
+*/
 #endif

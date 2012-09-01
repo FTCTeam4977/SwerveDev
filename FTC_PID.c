@@ -116,15 +116,6 @@ bool atPIDTarget(PID &pid)
 	return (abs(pid.error) <= pid.acceptedRange);
 }
 
-void setPIDTarget(PID &pid, int target)
-{
-  pid.target = target;
-  pid.errorSum = 0;
-  pid.d = 0;
-  pid.previousError = 0;
-  pid.error = 0;
-}
-
 void debugPID(PID &pid)
 {
   nxtDisplayString(0, "Cur: %i", pid.current);

@@ -21,7 +21,7 @@ task main()
   {
     for ( int i = 0; i < 4; i++ )
     {
-      int err = HTSPBreadADC(proto, i, 8)-127;
+      int err = HTSPBreadADC(proto, i, 8);
       nxtDisplayString(i, "%i - %i", i, err);
     }
   }
