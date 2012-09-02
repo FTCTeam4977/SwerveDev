@@ -11,7 +11,7 @@ typedef struct
  	float Kd;
 
 	int previousError;
-	int errorSum;
+	float errorSum;
   int maxIncrement;
 
   float d;
@@ -39,7 +39,7 @@ void initPID(PID &pid, float Kp = 0, float Ki = 0, float Kd = 0)
 	pid.Kd = Kd;
 
 	pid.previousError = 0;
-	pid.errorSum = 0;
+	//pid.errorSum = 0;
   pid.maxIncrement = 1;
   pid.d = 0;
 
@@ -62,7 +62,7 @@ int calcPID(PID &pid, int input)
 
   // I
   if ( pid.rawI )
-    pid.errorSum += error;
+  	pid.errorSum += error;
   else
   {
 	  if ( error >= pid.acceptedRange )
@@ -97,7 +97,7 @@ int calcPID(PID &pid, int input)
     pid.lastDUpdate = time1[T1];
   }
 
-	pid.output = (int)((pid.Kp*error) + (pid.Ki*pid.errorSum) + (int)(pid.Kd*pid.d));
+	pid.output = (int)((pid.Kp*error) + (int)(pid.Ki*pid.errorSum) + (int)(pid.Kd*pid.d));
   pid.isFirstCycle = false;
   pid.error = error;
  // pid.output = ( abs(pid.output) > pid.maxOutput ? 0 : pid.output );

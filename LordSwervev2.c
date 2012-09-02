@@ -4,6 +4,21 @@
 #include "drivers/HTSPB-driver.h"
 #include "FTC_PID.c"
 
+
+int rotateX(int x, int y, float theta)
+{
+  float cosA = cos(theta*(PI/180.0));
+  float sinA = sin(theta*(PI/180.0));
+  return (int)x*cosA-y*sinA;
+}
+
+int rotateY(int x, int y, float theta)
+{
+  float cosA = cos(theta*(PI/180.0));
+  float sinA = sin(theta*(PI/180.0));
+  return (int)x*sinA+y*cosA;
+}
+
 typedef struct
 {
 	int number;
@@ -16,6 +31,7 @@ typedef struct
   int truePos;
   int rotations;
   int rawPos;
+  int servoZeroOffset;
 
   tMotor driveMotor;
   int driveSpeed;
@@ -27,13 +43,27 @@ typedef struct
 
 SwerveModule modules[4];
 
+
+bool modulesInAlignment()
+{
+  for ( int a = 0; a < 4; a++ )
+  {
+    for ( int b = 0; b < 4; b++ )
+    {
+      if ( abs(modules[a].truePos-modules[b].truePos) > 50 )
+        return false;
+    }
+  }
+  return true;
+}
+
 int getReading(int module, bool highres)
 {
   int reading = HTSPBreadADC(proto, module, (highres?10:8));
   return reading;
 }
 
-int getRolloverTruePos(int number, int pos, int rollovers, bool highres)
+int getRolloverTruePos(int number, int pos, int rollovers, bool highres = true)
 {
   if ( rollovers == -1 )
     return ((highres?1024:255)-pos)*-1;
@@ -83,30 +113,29 @@ void moduleRotationWatcher()
   }
 }
 
-void initModule(int number, TServoIndex turnMotor, int turnOffset, bool invertTurn, tMotor driveMotor, int idleSpinSpeed)
+void initModule(int number, TServoIndex turnMotor, float P, float I, int turnOffset, int servoZeroOffset, bool invertTurn, tMotor driveMotor, int idleSpinSpeed)
 {
-  int reading = getReading(number, false);
-
 	modules[number].number = number;
 	modules[number].turnMotor = turnMotor;
 	modules[number].turnMotorInverted = invertTurn;
 	modules[number].truePos = getReading(number, true);
-	modules[number].lastPos = reading;
+	modules[number].lastPos = getReading(number, false);
 	modules[number].rotations = 0;
   modules[number].turnOffset = turnOffset;
   modules[number].idleSpinSpeed = idleSpinSpeed;
+  modules[number].servoZeroOffset = servoZeroOffset;
 
   modules[number].driveMotor = driveMotor;
 
-  initPID(modules[number].turnPID, 0.3, 0, 0); // 10 bit
+  initPID(modules[number].turnPID, P, I, 0);
 }
 
 void initSwerve()
 {
-  initModule(0, pod0Steer, 0, false, pod0Drive, 10);
-	initModule(1, pod1Steer, -11, false, pod1Drive, -15);
-	initModule(2, pod2Steer, 33, false, pod2Drive, -18);
-	initModule(3, pod3Steer, -25, false, pod3Drive, 10);
+  initModule(0, pod0Steer, 0.2, 0.09, 0, 10, false, pod0Drive, 10);
+	initModule(1, pod1Steer, 0.2, 0.09, -11, 5, false, pod1Drive, -15);
+	initModule(2, pod2Steer, 0.2, 0.09, 33, 0, false, pod2Drive, -18);
+	initModule(3, pod3Steer, 0.2, 0.09, -25, 0, false, pod3Drive, 10);
 }
 
 void setDriveSpeed(int number, int speed)
@@ -172,15 +201,17 @@ void updateModule(int number)
 
   if ( abs(modules[number].driveSpeed) > 10 )
     motor[modules[number].driveMotor] = modules[number].driveSpeed;
-  else if ( output > 4 )
+  else if ( output > 9 )
     motor[modules[number].driveMotor] = -modules[number].idleSpinSpeed;
-  else if ( output < -4 )
+  else if ( output < -9 )
     motor[modules[number].driveMotor] = modules[number].idleSpinSpeed;
   else
    motor[modules[number].driveMotor] = 0;
 
+#ifdef SWERVE_PID_DEBUG
   nxtDisplayString(number, "%i|%i|%i|%i", number, modules[number].truePos, modules[number].turnPID.target, modules[number].turnPID.error);
-  servo[modules[number].turnMotor] = output+127;
+#endif
+  servo[modules[number].turnMotor] = output+(127+ modules[number].servoZeroOffset);
 }
 
 void swerveUpdate()
@@ -200,11 +231,40 @@ void snakeDrive(int magnitude, int theta)
   setModuleTarget(1, inverse(theta));
 }
 
-void crabDrive(int magnitude, int theta)
+void crabDrive(bool fieldCentric = false)
 {
+  int offsetAngle = 90;
+  if ( fieldCentric )
+    offsetAngle += getGyroAngle();
+
+  int x = rotateX(joystick.joy1_x1, joystick.joy1_y1, offsetAngle);
+  int y = rotateY(joystick.joy1_x1, joystick.joy1_y1, offsetAngle);
+  int magnitude = sqrt(pow(joystick.joy1_x1,2)+pow(joystick.joy1_y1,2));
+  int theta = radiansToDegrees(atan2(x,y));
+
+  if ( magnitude <= 5 )
+  {
+    theta = 180;
+    magnitude = 0;
+  }
+
+  if ( !joy1Btn(6) )
+    magnitude = magnitude/3;
+
+  if ( joy1Btn(5) )
+  {
+    for ( int i = 0; i < 4; i++ )
+      modules[i].rotations = 0;
+  }
+    
+  if ( magnitude < 8 )
+    magnitude = 0;
+
+  if ( !modulesInAlignment() )
+    magnitude = 0;
+
+  massSet(theta*2.84444444, magnitude);
 
 }
-
-
 
 #endif
