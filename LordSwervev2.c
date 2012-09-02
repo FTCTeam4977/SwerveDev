@@ -4,6 +4,8 @@
 #include "drivers/HTSPB-driver.h"
 #include "FTC_PID.c"
 
+#define angleToPodSetpoint(angle) (2.84444444*angle)
+#define tan(x) (sin(x)/cos(x))
 
 int rotateX(int x, int y, float theta)
 {
@@ -50,7 +52,7 @@ bool modulesInAlignment()
   {
     for ( int b = 0; b < 4; b++ )
     {
-      if ( abs(modules[a].truePos-modules[b].truePos) > 50 )
+      if ( abs( (modules[a].rawPos+modules[a].turnOffset)-(modules[b].rawPos+modules[b].turnOffset)) > 70 )
         return false;
     }
   }
@@ -222,14 +224,6 @@ void swerveUpdate()
 	}
 }
 
-void snakeDrive(int magnitude, int theta)
-{
-  setModuleTarget(3, theta);
-  setModuleTarget(0, theta);
-
-  setModuleTarget(2, inverse(theta));
-  setModuleTarget(1, inverse(theta));
-}
 
 void crabDrive(bool fieldCentric = false)
 {
@@ -256,7 +250,7 @@ void crabDrive(bool fieldCentric = false)
     for ( int i = 0; i < 4; i++ )
       modules[i].rotations = 0;
   }
-    
+
   if ( magnitude < 8 )
     magnitude = 0;
 
@@ -264,6 +258,32 @@ void crabDrive(bool fieldCentric = false)
     magnitude = 0;
 
   massSet(theta*2.84444444, magnitude);
+
+}
+
+void carDrive()
+{
+  int x = rotateX(joystick.joy1_x1, abs(joystick.joy1_y1), 90);
+  int y = rotateY(joystick.joy1_x1, abs(joystick.joy1_y1), 90);
+  int magnitude = sqrt(pow(joystick.joy1_x1,2)+pow(joystick.joy1_y1,2));
+  int theta = radiansToDegrees(atan2(x,y));
+  nxtDisplayString(4, "%i", theta);
+
+if ( magnitude < 8 )
+  massSet(512, 0);
+else
+{
+  setModuleTarget(3, angleToPodSetpoint(theta));
+  setModuleTarget(0, angleToPodSetpoint(theta));
+  setModuleTarget(1, 512);
+  setModuleTarget(2, 512);
+  magnitude = magnitude/3;
+  for ( int i = 0; i < 4; i++ )
+    setDriveSpeed(i, (joystick.joy1_y1>0?magnitude:-magnitude));
+}
+
+
+
 
 }
 
