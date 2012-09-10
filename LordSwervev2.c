@@ -52,7 +52,7 @@ bool modulesInAlignment()
   {
     for ( int b = 0; b < 4; b++ )
     {
-      if ( abs( (modules[a].rawPos+modules[a].turnOffset)-(modules[b].rawPos+modules[b].turnOffset)) > 70 )
+      if ( abs((modules[a].turnPID.error)-(modules[b].turnPID.error)) > 70 )
         return false;
     }
   }
@@ -98,7 +98,7 @@ void moduleRotationWatcher()
     modules[i].truePos = getRolloverTruePos(i, modules[i].rawPos, modules[i].rotations, true);
   }
 
-  if ( checkAt < nPgmTime ) // Enforce checking every 200ms for rollover
+  if ( checkAt < nPgmTime ) // Checking every 200ms for rollover
     checkAt = nPgmTime+200;
   else return;
 
@@ -257,8 +257,7 @@ void crabDrive(bool fieldCentric = false)
   if ( !modulesInAlignment() )
     magnitude = 0;
 
-  massSet(theta*2.84444444, magnitude);
-
+  massSet(angleToPodSetpoint(theta), magnitude);
 }
 
 void carDrive()
