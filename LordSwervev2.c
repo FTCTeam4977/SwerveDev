@@ -37,6 +37,7 @@ typedef struct
 
   tMotor driveMotor;
   int driveSpeed;
+  bool driveReversed;
 
   int idleSpinSpeed;
 } SwerveModule;
@@ -128,6 +129,7 @@ void initModule(int number, TServoIndex turnMotor, float P, float I, int turnOff
   modules[number].servoZeroOffset = servoZeroOffset;
 
   modules[number].driveMotor = driveMotor;
+  modules[number].driveReversed = false;
 
   initPID(modules[number].turnPID, P, I, 0);
 }
@@ -142,6 +144,7 @@ void initSwerve()
 
 void setDriveSpeed(int number, int speed)
 {
+  if ( modules[number].driveReversed ) speed = -speed;
   modules[number].driveSpeed = speed;
 }
 
@@ -158,6 +161,7 @@ int inverse(int value)
 void setModuleTarget(int number, int newPos)
 {
   // Add a buffer zone to the js if it is near the turnover point
+
   if ( newPos > 1000)
     newPos = 990;
   else if ( newPos < 24 )
@@ -184,6 +188,19 @@ void setModuleTarget(int number, int newPos)
   {
     target = getRolloverPos(newPos, modules[number].rotations);
   }
+
+  if ( (cur >= 256 && cur <= 768) && (newPos <= 256 && newPos >= 768) )
+  {
+    if ( cur <= 256 )
+      target = target+512;
+    else if ( cur >= 768 )
+      target = target-512;
+    modules[number].driveReversed = true;
+  }
+  else
+    modules[number].driveReversed = false;
+
+
   modules[number].turnPID.target = target;
 }
 
