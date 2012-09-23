@@ -198,14 +198,6 @@ void setModuleTarget(int number, int newPos)
     target = getRolloverPos(newPos, modules[number].rotations);
     modules[number].driveReversed = false;
   }
-
-/*  if ( abs(inverse(newPos, true)-cur) < abs(newPos-cur) )
-  {
-    target = inverse(newPos, true);
-    modules[number].driveReversed = true;
-  }
-  else
-    modules[number].driveReversed = false;*/
 #ifdef SWERVE_REVERSE_DEBUG
 	nxtDisplayString(number, "%i - %i", number, modules[number].driveReversed);
 #endif
