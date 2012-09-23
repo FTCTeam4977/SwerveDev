@@ -1,3 +1,5 @@
+#pragma systemFile
+
 #ifndef LordSwerve_h
 #define LordSwerve_h
 
@@ -144,19 +146,19 @@ void initSwerve()
 
 void setDriveSpeed(int number, int speed)
 {
-  if ( modules[number].driveReversed ) speed = -speed;
   modules[number].driveSpeed = speed;
 }
 
-int inverse(int value)
+int inverse(int value, bool highres)
 {
-  int midpoint = 512;
+  int midpoint = (highres?512:256);
   if ( value > midpoint )
-   	value -= 512;
+   	value -= midpoint;
   else
-  	value += 512;
+  	value += midpoint;
   return value;
 }
+
 
 void setModuleTarget(int number, int newPos)
 {
@@ -170,6 +172,7 @@ void setModuleTarget(int number, int newPos)
   int cur = modules[number].rawPos;
   int p1 = abs(cur-newPos);
   int p2 = 9999;
+  int p3 = abs(inverse(newPos, true)-cur);
 
   if ( cur > newPos )
     p2 = newPos+1024-cur;
@@ -177,29 +180,35 @@ void setModuleTarget(int number, int newPos)
     p2 = cur+1024-newPos;
 
   int target = newPos;
-  if ( p1 > p2 ) // Across the 0 is shorter!
+  if ( (p1 > p2) && (p3>p2) ) // Across the 0 is shorter!
   {
     if ( cur > newPos ) // big -> small
       target = getRolloverPos(newPos, modules[number].rotations)+1024;
     else if ( cur < newPos ) // small -> big
       target = getRolloverPos(newPos, modules[number].rotations)-1024;
+    modules[number].driveReversed = false;
+  }
+  else if ( (p3<p1) && (p3<p2) ) // Inverse angle is shorter
+  {
+  	target = inverse(newPos, true);
+  	modules[number].driveReversed = true;
   }
   else // Add current rotations onto the new target
   {
     target = getRolloverPos(newPos, modules[number].rotations);
+    modules[number].driveReversed = false;
   }
 
-  if ( (cur >= 256 && cur <= 768) && (newPos <= 256 && newPos >= 768) )
+/*  if ( abs(inverse(newPos, true)-cur) < abs(newPos-cur) )
   {
-    if ( cur <= 256 )
-      target = target+512;
-    else if ( cur >= 768 )
-      target = target-512;
+    target = inverse(newPos, true);
     modules[number].driveReversed = true;
   }
   else
-    modules[number].driveReversed = false;
-
+    modules[number].driveReversed = false;*/
+#ifdef SWERVE_REVERSE_DEBUG
+	nxtDisplayString(number, "%i - %i", number, modules[number].driveReversed);
+#endif
 
   modules[number].turnPID.target = target;
 }
@@ -219,7 +228,7 @@ void updateModule(int number)
   int output = calcPID(modules[number].turnPID, reading);
 
   if ( abs(modules[number].driveSpeed) > 10 )
-    motor[modules[number].driveMotor] = modules[number].driveSpeed;
+    motor[modules[number].driveMotor] = (modules[number].driveReversed?-modules[number].driveSpeed:modules[number].driveSpeed);
   else if ( output > 9 )
     motor[modules[number].driveMotor] = -modules[number].idleSpinSpeed;
   else if ( output < -9 )
@@ -244,11 +253,11 @@ void swerveUpdate()
 
 void crabDrive(bool fieldCentric = false)
 {
-  int offsetAngle = 90;
+  int offsetAngle = 180;
   if ( fieldCentric )
     offsetAngle += getGyroAngle();
 
-  int x = rotateX(joystick.joy1_x1, joystick.joy1_y1, offsetAngle);
+  int x = -rotateX(joystick.joy1_x1, joystick.joy1_y1, offsetAngle);
   int y = rotateY(joystick.joy1_x1, joystick.joy1_y1, offsetAngle);
   int magnitude = sqrt(pow(joystick.joy1_x1,2)+pow(joystick.joy1_y1,2));
   int theta = radiansToDegrees(atan2(x,y));
@@ -279,7 +288,7 @@ void crabDrive(bool fieldCentric = false)
 
 void carDrive()
 {
-  int x = rotateX(joystick.joy1_x1, abs(joystick.joy1_y1), 90);
+  int x = -rotateX(joystick.joy1_x1, abs(joystick.joy1_y1), 90);
   int y = rotateY(joystick.joy1_x1, abs(joystick.joy1_y1), 90);
   int magnitude = sqrt(pow(joystick.joy1_x1,2)+pow(joystick.joy1_y1,2));
   int theta = radiansToDegrees(atan2(x,y));
