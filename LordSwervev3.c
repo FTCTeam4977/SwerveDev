@@ -80,6 +80,7 @@ void initModule(int number, TServoIndex turnMotor, float P, float I, int turnOff
   modules[number].driveReversed = false;
 
   initPID(modules[number].turnPID, P, I, 0);
+  modules[number].turnPID.continous = true;
 }
 
 void initSwerve()
