@@ -27,6 +27,9 @@ typedef struct
 	int lastDUpdate;
 	bool isFirstCycle;
 	bool rawI;
+
+	bool continous;
+	int maxInput;
 } PID;
 
 void initPID(PID &pid, float Kp = 0, float Ki = 0, float Kd = 0)
@@ -52,6 +55,7 @@ void initPID(PID &pid, float Kp = 0, float Ki = 0, float Kd = 0)
   pid.lastDUpdate = time1[T1];
 	pid.isFirstCycle = true;
 	pid.rawI = false;
+	pid.continous = false;
 }
 
 int calcPID(PID &pid, int input)
@@ -59,6 +63,17 @@ int calcPID(PID &pid, int input)
   pid.current = input;
   // P
   float error = (float)pid.target - (float)pid.current;
+
+  if ( continous )
+  {
+  	if ( abs(error) > (pid.maxInput/2) )
+  	{
+  		if ( error > 0 )
+  			error = error - pid.maxInput;
+  		else
+  			error = error + pid.maxInput;
+  	}
+  }
 
   // I
   if ( pid.rawI )
