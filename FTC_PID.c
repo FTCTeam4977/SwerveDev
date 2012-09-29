@@ -64,7 +64,7 @@ int calcPID(PID &pid, int input)
   // P
   float error = (float)pid.target - (float)pid.current;
 
-  if ( continous )
+  if ( pid.continous )
   {
   	if ( abs(error) > (pid.maxInput/2) )
   	{
