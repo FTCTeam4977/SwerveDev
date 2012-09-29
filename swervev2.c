@@ -19,7 +19,7 @@
 #define GYRO S3
 #include "JoystickDriver.c"
 #include "FTC_Gyro.c"
-#include "LordSwervev2.c"
+#include "LordSwervev3.c"
 
 task main()
 {
