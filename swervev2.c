@@ -37,7 +37,5 @@ task main()
      crabDrive(false);
     for ( int i = 0; i < 4; i++ )
       updateModule(i);
-
-    moduleRotationWatcher();
   }
 }

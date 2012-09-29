@@ -176,12 +176,6 @@ void crabDrive(bool fieldCentric = false)
   if ( !joy1Btn(6) )
     magnitude = magnitude/3;
 
-  if ( joy1Btn(5) )
-  {
-    for ( int i = 0; i < 4; i++ )
-      modules[i].rotations = 0;
-  }
-
   if ( magnitude < 8 )
     magnitude = 0;
 
