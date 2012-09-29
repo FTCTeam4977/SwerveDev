@@ -27,14 +27,11 @@ task main()
   initGyro();
   //waitForStart();
   initSwerve();
-  massSet(512);
+
   while ( true )
   {
     getJoystickSettings(joystick);
-  if ( joy1Btn(3) )
-     carDrive();
-   else
-     crabDrive(false);
+ 		crabDrive(true);
     for ( int i = 0; i < 4; i++ )
       updateModule(i);
   }

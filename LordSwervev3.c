@@ -81,6 +81,7 @@ void initModule(int number, TServoIndex turnMotor, float P, float I, int turnOff
 
   initPID(modules[number].turnPID, P, I, 0);
   modules[number].turnPID.continous = true;
+  modules[number].turnPID.maxInput = 1024;
 }
 
 void initSwerve()
@@ -106,9 +107,43 @@ int inverse(int value, bool highres)
   return value;
 }
 
-
-void setModuleTarget(int number, int newPos)
+int calcModuleError(int cur, int target)
 {
+	int error = target-cur;
+	if ( abs(error) > 512 )
+  {
+  	if ( error > 0 )
+  		error = error - 1024;
+  	else
+  		error = error + 1024;
+  }
+  return error;
+}
+
+bool wheelReversalIsShorter(int number, int target)
+{
+	return abs(calcModuleError(modules[number].position, target)) > 180 && modules[number].position > 256 && modules[number].position < 768;
+}
+
+void setModuleTarget(int number, int newPos, bool findShortestPath = true)
+{
+	if ( findShortestPath )
+	{
+		if ( wheelReversalIsShorter(number, newPos) )
+		{
+			newPos = inverse(newPos, true);
+			modules[number].driveReversed = true;
+		}
+		else
+			modules[number].driveReversed = false;
+	}
+
+	// Add a small buffer zone around the potentiometer dead zone
+	if ( newPos > 1000 )
+		newPos = 974;
+	else if ( newPos < 24 )
+			newPos = 50;
+
 #ifdef SWERVE_REVERSE_DEBUG
 	nxtDisplayString(0, "# - Inv - Past0");
 	nxtDisplayString(number+1, "%i - %i", number, modules[number].turnPID.target);
@@ -119,9 +154,20 @@ void setModuleTarget(int number, int newPos)
 
 void massSet(int position, int speed = 0)
 {
+	int modulesTakingShorterPath = 0;
+	for ( int i = 0; i < 4; i++ )
+	{
+		if ( wheelReversalIsShorter(i, position) )
+			modulesTakingShorterPath++;
+	}
+
+	if ( modulesTakingShorterPath > 3 )
+		position = inverse(position, true);
+
   for ( int i = 0; i < 4; i++ )
   {
-    setModuleTarget(i, position);
+  	modules[i].driveReversed = (modulesTakingShorterPath > 3);
+    setModuleTarget(i, position, false);
     setDriveSpeed(i, speed);
   }
 }
