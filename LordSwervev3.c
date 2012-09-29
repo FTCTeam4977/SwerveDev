@@ -111,7 +111,7 @@ void setModuleTarget(int number, int newPos)
 {
 #ifdef SWERVE_REVERSE_DEBUG
 	nxtDisplayString(0, "# - Inv - Past0");
-	nxtDisplayString(number+1, "%i - %i - %i - %i", number, modules[number].driveReversed, ((p1 > p2) && (p3>p2)), modules[number].turnPID.target);
+	nxtDisplayString(number+1, "%i - %i", number, modules[number].turnPID.target);
 #endif
 
   modules[number].turnPID.target = newPos;
@@ -228,7 +228,7 @@ void tank()
 		setModuleTarget(i, 512);
 	setDriveSpeed(3, joystick.joy1_y1);
 	setDriveSpeed(2, joystick.joy1_y1);
-	
+
 	setDriveSpeed(0, joystick.joy1_y2);
 	setDriveSpeed(1, joystick.joy1_y2);
 }
